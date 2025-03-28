@@ -1,11 +1,22 @@
 import * as gql from 'gql-query-builder';
 import { makeLocoRequestGraphql } from './api.js';
-export async function getProducts(first, after, apiToken) {
+function graphqlQueryPageInfo() {
+    return ['hasNextPage', 'endCursor', 'count', 'total'];
+}
+function graphqlQueryAction() {
+    return [
+        'status', { 'errors': ['code', 'message'] }
+    ];
+}
+export async function getProducts(apiToken, first, after, identifier) {
     let variables = {
         first: { value: first, required: true },
     };
     if (after !== null) {
         variables.after = after;
+    }
+    if (identifier !== null) {
+        variables.identifier = identifier.toString();
     }
     const query = gql.query({
         operation: 'products',
@@ -17,7 +28,7 @@ export async function getProducts(first, after, apiToken) {
                             { 'translation': ['language', 'title'] }
                         ]
                     }],
-                pageInfo: ['hasNextPage', 'endCursor', 'count', 'total']
+                pageInfo: graphqlQueryPageInfo()
             }]
     });
     let data;
@@ -50,6 +61,41 @@ export async function getProducts(first, after, apiToken) {
     return {
         success: true,
         message: `Count product: ${data.edges.length}`,
+        data: data
+    };
+}
+export async function actionDeleteProductTranslation(apiToken, productIdentifier, language) {
+    const query = gql.mutation({
+        operation: 'productTranslationDelete',
+        variables: {
+            language: { value: language, type: 'LanguageEnum' },
+            productIdentifier: { value: productIdentifier },
+        },
+        fields: graphqlQueryAction()
+    });
+    let data;
+    try {
+        let response = await makeLocoRequestGraphql(query, apiToken);
+        data = response.data.productTranslationDelete;
+        if (!data.status) {
+            return {
+                success: false,
+                message: "Failed to retrieve data from loco",
+                data: null
+            };
+        }
+    }
+    catch (error) {
+        let msg = error instanceof Error ? error.message : String(error);
+        return {
+            success: false,
+            message: msg,
+            data: null
+        };
+    }
+    return {
+        success: true,
+        message: `Delete translation status: ${data.status}`,
         data: data
     };
 }

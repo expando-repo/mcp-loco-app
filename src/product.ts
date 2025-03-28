@@ -1,13 +1,65 @@
 import * as gql from 'gql-query-builder'
 import { makeLocoRequestGraphql } from './api.js';
 
-export async function getProducts(first: number, after: string|null, apiToken: string) {
+interface ActionData {
+    status: string;
+    errors: {
+        code: string;
+        message: string;
+    }[];
+}
+
+interface PageInfoData {
+    hasNextPage: boolean;
+    endCursor: string|null;
+    count: number;
+    total: number;
+}
+
+interface ProductTranslationDeleteData {
+    data: {
+        productTranslationDelete: ActionData;
+    }
+}
+
+interface ProductsData {
+    data: {
+        products: {
+            edges: any,
+            pageInfo: PageInfoData,
+        }
+    }
+}
+
+function graphqlQueryPageInfo(): string[]
+{
+    return ['hasNextPage', 'endCursor', 'count', 'total'];
+}
+
+function graphqlQueryAction()
+{
+    return [
+        'status', {'errors': ['code', 'message']}
+    ];
+}
+
+
+export async function getProducts(
+    apiToken: string,
+    first: number,
+    after: string|null,
+    identifier: number|string|null
+) {
     let variables: any = {
         first: { value: first, required: true },
     }
 
     if (after !== null) {
         variables.after = after;
+    }
+
+    if (identifier !== null) {
+        variables.identifier = identifier.toString();
     }
 
     const query = gql.query({
@@ -20,13 +72,13 @@ export async function getProducts(first: number, after: string|null, apiToken: s
                     {'translation': ['language', 'title']}
                 ]
             }],
-            pageInfo: ['hasNextPage', 'endCursor', 'count', 'total']
+            pageInfo: graphqlQueryPageInfo()
         }]
     });
 
     let data;
     try {
-        let response = await makeLocoRequestGraphql<any>(query, apiToken);
+        let response = await makeLocoRequestGraphql<ProductsData>(query, apiToken);
         data = response.data.products
         if (!data) {
             return {
@@ -58,4 +110,48 @@ export async function getProducts(first: number, after: string|null, apiToken: s
         message: `Count product: ${data.edges.length}`,
         data: data
     };
-} 
+}
+
+export async function actionDeleteProductTranslation(
+    apiToken: string,
+    productIdentifier: number|string|null,
+    language: string|null,
+) {
+    
+    const query = gql.mutation({
+        operation: 'productTranslationDelete',
+        variables: {
+            language: { value: language, type: 'LanguageEnum' },
+            productIdentifier: { value: productIdentifier },
+        },
+        fields: graphqlQueryAction()
+    });
+
+    let data;
+    try {
+        let response = await makeLocoRequestGraphql<ProductTranslationDeleteData>(query, apiToken);
+        data = response.data.productTranslationDelete;
+
+        if (!data.status) {
+            return {
+                success: false,
+                message: "Failed to retrieve data from loco",
+                data: null
+            };
+        }
+
+    } catch (error) {
+        let msg = error instanceof Error ? error.message : String(error);
+        return {
+            success: false,
+            message: msg,
+            data: null
+        };
+    }
+
+    return {
+        success: true,
+        message: `Delete translation status: ${data.status}`,
+        data: data
+    };
+}

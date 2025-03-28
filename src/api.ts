@@ -14,7 +14,7 @@ export function getApiKey(): string {
     return apiKey;
 }
 
-export async function makeLocoRequestGraphql<T>(query: object, apiToken: string): Promise<T | null> {
+export async function makeLocoRequestGraphql<T>(query: object, apiToken: string): Promise<T> {
     const headers = {
         Accept: "application/json",
         Authorization: `Bearer ${apiToken}`,
@@ -32,8 +32,7 @@ export async function makeLocoRequestGraphql<T>(query: object, apiToken: string)
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data: any = await response.json() as any;
-        return data as T;
+        return await response.json() as T;
     } catch (error) {
         const message = `Error making Loco GraphQL request, error: ${error instanceof Error ? error.message : String(error)}\n`;
         throw new Error(`HTTP error! status: ${message}`);

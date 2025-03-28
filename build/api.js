@@ -25,8 +25,7 @@ export async function makeLocoRequestGraphql(query, apiToken) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        return data;
+        return await response.json();
     }
     catch (error) {
         const message = `Error making Loco GraphQL request, error: ${error instanceof Error ? error.message : String(error)}\n`;
