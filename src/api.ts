@@ -3,7 +3,8 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const LOCO_API_BASE = "https://connector.local/api/graphql";
+//const LOCO_API_BASE = "https://connector.local/api/graphql";
+const LOCO_API_BASE = "https://loco-app.expando.dev/api/graphql";
 
 export function getApiKey(): string {
     const apiKey = process.env.LOCO_API_TOKEN;
