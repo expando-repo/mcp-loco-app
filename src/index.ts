@@ -17,8 +17,6 @@ const server = new McpServer({
     },
 });
 
-const LOCO_API_TOKEN = getApiKey();
-
 server.tool(
     "get-products",
     "Returns information about the total number of products in pageInfo, ie. Due to the number you can use First: 1.",
@@ -29,7 +27,6 @@ server.tool(
     },
     async ({first, after = null, identifier = null}) => {
         const result = await getProducts(
-            LOCO_API_TOKEN,
             first,
             after,
             identifier
@@ -53,7 +50,6 @@ server.tool(
     },
     async ({productIdentifier, language = null}) => {
         const result = await actionDeleteProductTranslation(
-            LOCO_API_TOKEN,
             productIdentifier,
             language,
         );

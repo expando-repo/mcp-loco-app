@@ -1,7 +1,6 @@
 import fetch from "node-fetch";
 import * as dotenv from 'dotenv';
 dotenv.config();
-const LOCO_API_BASE = "https://connector.local/api/graphql";
 export function getApiKey() {
     const apiKey = process.env.LOCO_API_TOKEN;
     if (!apiKey) {
@@ -10,14 +9,22 @@ export function getApiKey() {
     }
     return apiKey;
 }
-export async function makeLocoRequestGraphql(query, apiToken) {
+export function getLocoApiBase() {
+    const apiBase = process.env.LOCO_API_BASE;
+    if (!apiBase) {
+        return "https://loco-app.expando.dev/api/graphql";
+    }
+    return apiBase;
+}
+export async function makeLocoRequestGraphql(query) {
+    let apiToken = getApiKey();
     const headers = {
         Accept: "application/json",
         Authorization: `Bearer ${apiToken}`,
         'Content-Type': 'application/json',
     };
     try {
-        const response = await fetch(LOCO_API_BASE, {
+        const response = await fetch(getLocoApiBase(), {
             method: 'POST',
             headers,
             body: JSON.stringify(query),

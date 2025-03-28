@@ -3,7 +3,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import * as dotenv from 'dotenv';
 import { actionDeleteProductTranslation, getProducts } from './product.js';
-import { getApiKey } from './api.js';
 dotenv.config();
 // Create server instance
 const server = new McpServer({
@@ -14,13 +13,12 @@ const server = new McpServer({
         tools: {},
     },
 });
-const LOCO_API_TOKEN = getApiKey();
 server.tool("get-products", "Returns information about the total number of products in pageInfo, ie. Due to the number you can use First: 1.", {
     first: z.number().min(1).max(100).default(10).describe("Count product to page"),
     after: z.string().describe("Cursor for pagination").nullable().optional(),
     identifier: z.any().describe("Filter by client ID (e.g. 'ABC-123', '1456', etc.)").nullable().optional(),
 }, async ({ first, after = null, identifier = null }) => {
-    const result = await getProducts(LOCO_API_TOKEN, first, after, identifier);
+    const result = await getProducts(first, after, identifier);
     return {
         content: [{
                 type: "text",
@@ -32,7 +30,7 @@ server.tool("action-delete-product-translation", "Call this action to delete a p
     productIdentifier: z.string().describe("Product client ID"),
     language: z.string().length(5).describe("Allow language is cs_CZ|sk_SK|pl_PL. If it is empty, it removes translations into all languages.").nullable().optional(),
 }, async ({ productIdentifier, language = null }) => {
-    const result = await actionDeleteProductTranslation(LOCO_API_TOKEN, productIdentifier, language);
+    const result = await actionDeleteProductTranslation(productIdentifier, language);
     return {
         content: [{
                 type: "text",

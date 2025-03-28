@@ -45,10 +45,9 @@ function graphqlQueryAction()
 
 
 export async function getProducts(
-    apiToken: string,
     first: number,
-    after: string|null,
-    identifier: number|string|null
+    after: string|null = null,
+    identifier: number|string|null = null
 ) {
     let variables: any = {
         first: { value: first, required: true },
@@ -78,7 +77,7 @@ export async function getProducts(
 
     let data;
     try {
-        let response = await makeLocoRequestGraphql<ProductsData>(query, apiToken);
+        let response = await makeLocoRequestGraphql<ProductsData>(query);
         data = response.data.products
         if (!data) {
             return {
@@ -113,7 +112,6 @@ export async function getProducts(
 }
 
 export async function actionDeleteProductTranslation(
-    apiToken: string,
     productIdentifier: number|string|null,
     language: string|null,
 ) {
@@ -129,7 +127,7 @@ export async function actionDeleteProductTranslation(
 
     let data;
     try {
-        let response = await makeLocoRequestGraphql<ProductTranslationDeleteData>(query, apiToken);
+        let response = await makeLocoRequestGraphql<ProductTranslationDeleteData>(query);
         data = response.data.productTranslationDelete;
 
         if (!data.status) {

@@ -8,7 +8,7 @@ function graphqlQueryAction() {
         'status', { 'errors': ['code', 'message'] }
     ];
 }
-export async function getProducts(apiToken, first, after, identifier) {
+export async function getProducts(first, after = null, identifier = null) {
     let variables = {
         first: { value: first, required: true },
     };
@@ -33,7 +33,7 @@ export async function getProducts(apiToken, first, after, identifier) {
     });
     let data;
     try {
-        let response = await makeLocoRequestGraphql(query, apiToken);
+        let response = await makeLocoRequestGraphql(query);
         data = response.data.products;
         if (!data) {
             return {
@@ -64,7 +64,7 @@ export async function getProducts(apiToken, first, after, identifier) {
         data: data
     };
 }
-export async function actionDeleteProductTranslation(apiToken, productIdentifier, language) {
+export async function actionDeleteProductTranslation(productIdentifier, language) {
     const query = gql.mutation({
         operation: 'productTranslationDelete',
         variables: {
@@ -75,7 +75,7 @@ export async function actionDeleteProductTranslation(apiToken, productIdentifier
     });
     let data;
     try {
-        let response = await makeLocoRequestGraphql(query, apiToken);
+        let response = await makeLocoRequestGraphql(query);
         data = response.data.productTranslationDelete;
         if (!data.status) {
             return {
