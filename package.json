@@ -1,11 +1,11 @@
 {
   "name": "@loco-repo/mcp-loco-app",
-  "version": "1.0.10",
-  "description": "Translate e-commerce product with AI Agent",
-  "license": "ISC",
-  "author": "LOCO global s.r.o.",
-  "homepage": "https://github.com/expando-repo/mcp-loco-app#readme",
-  "bugs": "https://github.com/expando-repo/mcp-loco-app/issues",
+  "version": "1.0.15",
+  "description": "MCP server for using the Google Maps API",
+  "license": "MIT",
+  "author": "Anthropic, PBC (https://anthropic.com)",
+  "homepage": "https://modelcontextprotocol.io",
+  "bugs": "https://github.com/modelcontextprotocol/servers/issues",
   "type": "module",
   "bin": {
     "mcp-loco-app": "dist/index.js"
@@ -19,16 +19,13 @@
     "watch": "tsc --watch"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.7.0",
-    "dotenv": "^16.4.7",
+    "@modelcontextprotocol/sdk": "1.0.1",
+    "@types/node-fetch": "^2.6.12",
     "gql-query-builder": "^3.8.0",
-    "node-fetch": "^3.3.2",
-    "shx": "github:shelljs/shx",
-    "zod": "^3.24.2"
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.13",
-    "tsc-watch": "^6.2.1",
-    "typescript": "^5.8.2"
+    "shx": "^0.3.4",
+    "typescript": "^5.6.2"
   }
 }
