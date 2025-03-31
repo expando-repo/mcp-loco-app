@@ -10,6 +10,9 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import fetch from "node-fetch";
 
+//import * as dotenv from 'dotenv';
+//dotenv.config();
+
 
 function getApiKey(): string {
     const apiKey = process.env.LOCO_API_TOKEN;
@@ -77,6 +80,20 @@ interface ProductTranslationDeleteData {
     }
 }
 
+interface GlossaryItemCreateOrUpdateData {
+    data: {
+        glossaryItemCreateOrUpdate: {
+            glossaries: {
+                glossaryId: string;
+            }[],
+            errors: {
+                code: string;
+                message: string;
+            }[];
+        };
+    }
+}
+
 interface ProductsData {
     data: {
         products: {
@@ -96,46 +113,18 @@ function graphqlQueryAction() {
     ];
 }
 
-async function actionDeleteProductTranslation(
-    productIdentifier: number | string | null,
-    language: string | null,
-) {
+function languagesArray()
+{
+    return ["cs_CZ", "sk_SK", "pl_PL", "en_GB", "de_DE", "hr_HR", "hu_HU", "fr_FR", "it_IT", "ro_RO", "sl_SI", "de_AT", "uk_UA", "lt_LT", "en_US", "ru_RU", "es_ES", "nl_NL", "da_DK", "bg_BG", "pt_PT", "el_GR", "lv_LV", "et_EE", "vi_VN", "fi_FI", "sv_SE", "nb_NO", "tr_TR", "mt_MT", "ja_JP", "id_ID", "ka_GE", "is_IS",];
+}
 
-    const query = gql.mutation({
-        operation: 'productTranslationDelete',
-        variables: {
-            language: {value: language, type: 'LanguageEnum'},
-            productIdentifier: {value: productIdentifier},
-        },
-        fields: graphqlQueryAction()
-    });
-
-    let data;
-    try {
-        let response = await makeLocoRequestGraphql<ProductTranslationDeleteData>(query);
-        data = response.data.productTranslationDelete;
-
-        if (!data.status) {
-            return {
-                success: false,
-                message: "Failed to retrieve data from loco",
-                data: null
-            };
-        }
-
-    } catch (error) {
-        let msg = error instanceof Error ? error.message : String(error);
-        return {
-            success: false,
-            message: msg,
-            data: null
-        };
-    }
-
+function createResponse(message: string, isError: boolean = false) {
     return {
-        success: true,
-        message: `Delete translation status: ${data.status}`,
-        data: data
+        content: [{
+            type: "text",
+            text: message,
+        }],
+        isError: isError
     };
 }
 
@@ -175,18 +164,52 @@ const PRODUCT_DELETE_TRANSLATION_TOOL: Tool = {
             language: {
                 type: "string",
                 description: "Language for delete. If it is empty, it removes translations into all languages.",
-                enum: ["cs_CZ", "sk_SK", "pl_PL"]
+                enum: languagesArray()
             }
         },
         required: ["productIdentifier"]
     }
 };
 
+const GLOSSARY_ITEM_CREATE_OR_UPDATE_TOOL: Tool = {
+    name: "glossary_item_create_or_update",
+    description: "Call this event to create a glossary for translation. If there is a source text in a given language, the translation will be updated.",
+    inputSchema: {
+        type: "object",
+        properties: {
+            languageFrom: {
+                type: "string",
+                description: "Source text language",
+                enum: languagesArray()
+            },
+            textSource: {
+                type: "string",
+                description: "Source text glossary"
+            },
+            languageTo: {
+                type: "string",
+                description: "Target text language",
+                enum: languagesArray()
+            },
+            textTarget: {
+                type: "string",
+                description: "Target text glossary"
+            },
+        },
+        required: ["languageFrom", "textSource", "languageTo", "textTarget"]
+    }
+};
+
 const LOCO_TOOLS = [
     PRODUCT_LIST_TOOL,
-    PRODUCT_DELETE_TRANSLATION_TOOL
+    PRODUCT_DELETE_TRANSLATION_TOOL,
+    GLOSSARY_ITEM_CREATE_OR_UPDATE_TOOL,
 ] as const;
 
+const productNode = [
+    'productId', 'status', 'identifier', 'code', 'url',  'imageId',
+    {'translation': ['language', 'title']}
+];
 
 async function handleProductList(
     first: number,
@@ -213,7 +236,7 @@ async function handleProductList(
             edges: [{
                 node: [
                     'productId', 'code', 'identifier', 'status',
-                    {'translation': ['language', 'title']}
+                    {'translation': ['language', 'title', 'description']}
                 ]
             }],
             pageInfo: graphqlQueryPageInfo()
@@ -225,45 +248,18 @@ async function handleProductList(
         let response = await makeLocoRequestGraphql<ProductsData>(query);
         data = response.data.products
         if (!data) {
-            return {
-                content: [{
-                    type: "text",
-                    text: "Failed to retrieve data from loco",
-                }],
-                isError: true
-            };
+            return createResponse("Failed to retrieve data from loco", true);
         }
-
     } catch (error) {
         let msg = error instanceof Error ? error.message : String(error);
-        return {
-            content: [{
-                type: "text",
-                text: msg,
-            }],
-            isError: true
-        };
-
+        return createResponse(msg, true);
     }
 
     if (data.edges.length === 0) {
-
-        return {
-            content: [{
-                type: "text",
-                text: "No products found",
-            }],
-            isError: true
-        };
+        return createResponse("No products found", true);
     }
 
-    return {
-        content: [{
-            type: "text",
-            text: JSON.stringify(data),
-        }],
-        isError: false
-    };
+    return createResponse(JSON.stringify(data), true);
 }
 
 async function handleProductDeleteTranslation(
@@ -284,35 +280,54 @@ async function handleProductDeleteTranslation(
     try {
         let response = await makeLocoRequestGraphql<ProductTranslationDeleteData>(query);
         data = response.data.productTranslationDelete;
-
         if (!data.status) {
-            return {
-                content: [{
-                    type: "text",
-                    text: "Failed to retrieve data from loco",
-                }],
-                isError: true
-            };
+            return createResponse("Failed to retrieve data from loco", true);
         }
 
     } catch (error) {
         let msg = error instanceof Error ? error.message : String(error);
-        return {
-            content: [{
-                type: "text",
-                text: msg,
-            }],
-            isError: true
-        };
+        return createResponse(msg, true);
     }
+    return createResponse(JSON.stringify(data));
+}
 
-    return {
-        content: [{
-            type: "text",
-            text: JSON.stringify(data),
-        }],
-        isError: false
-    };
+async function handleGlossaryItemCreateOrUpdate(
+    languageFrom: string,
+    textSource: string,
+    languageTo: string,
+    textTarget: string,
+) {
+
+    const query = gql.mutation({
+        operation: 'glossaryItemCreateOrUpdate',
+        variables: {
+            'input': {
+                value: [{
+                    languageFrom: languageFrom,
+                    textSource: textSource,
+                    languageTo: languageTo,
+                    textTarget: textTarget,
+                }],
+                type: '[CreateGlossaryInput!]'
+            }
+        },
+        fields: [
+            {'glossaries': ['glossaryId']}, {'errors': ['code', 'message']}
+        ]
+    });
+
+    let data;
+    try {
+        let response = await makeLocoRequestGraphql<GlossaryItemCreateOrUpdateData>(query);
+        data = response.data.glossaryItemCreateOrUpdate;
+        if (data.errors.length > 0) {
+            return createResponse("Failed to retrieve data from loco", true);
+        }
+    } catch (error) {
+        let msg = error instanceof Error ? error.message : String(error);
+        return createResponse(msg, true);
+    }
+    return createResponse(JSON.stringify(data));
 }
 
 // Server setup
@@ -337,35 +352,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
         switch (request.params.name) {
             case "product_list": {
-                const {first} = request.params.arguments as { first: number };
-                const {after} = request.params.arguments as { after: string | null };
-                const {identifier} = request.params.arguments as { identifier: string | null };
+                const { first } = request.params.arguments as { first: number };
+                const { after } = request.params.arguments as { after: string | null };
+                const { identifier } = request.params.arguments as { identifier: string | null };
                 return await handleProductList(first, after, identifier);
             }
 
             case "product_delete_translation": {
-                const {productIdentifier} = request.params.arguments as { productIdentifier: string };
-                const {language} = request.params.arguments as { language: string | null };
+                const { productIdentifier } = request.params.arguments as { productIdentifier: string };
+                const { language } = request.params.arguments as { language: string | null };
                 return await handleProductDeleteTranslation(productIdentifier, language);
             }
 
+            case "glossary_item_create_or_update": {
+                const { languageFrom } = request.params.arguments as { languageFrom: string };
+                const { textSource } = request.params.arguments as { textSource: string };
+                const { languageTo } = request.params.arguments as { languageTo: string };
+                const { textTarget } = request.params.arguments as { textTarget: string };
+                return await handleGlossaryItemCreateOrUpdate(languageFrom, textSource, languageTo, textTarget);
+            }
+
             default:
-                return {
-                    content: [{
-                        type: "text",
-                        text: `Unknown tool: ${request.params.name}`
-                    }],
-                    isError: true
-                };
+                return createResponse(`Unknown tool: ${request.params.name}`, true);
         }
     } catch (error) {
-        return {
-            content: [{
-                type: "text",
-                text: `Error: ${error instanceof Error ? error.message : String(error)}`
-            }],
-            isError: true
-        };
+        return createResponse(`Error: ${error instanceof Error ? error.message : String(error)}`, true);
     }
 });
 

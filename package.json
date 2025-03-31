@@ -21,6 +21,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.0.1",
     "@types/node-fetch": "^2.6.12",
+    "dotenv": "^16.4.7",
     "gql-query-builder": "^3.8.0",
     "node-fetch": "^3.3.2"
   },
